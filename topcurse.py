@@ -6,7 +6,7 @@ import time
 from collections import deque
 
 TIME_STEP = 5.0 # seconds
-OLD_PROCESS_LIMIT = 5
+OLD_PROCESS_LIMIT = 20
 
 UP_CHAR = '/'
 DOWN_CHAR = '\\'
@@ -66,6 +66,7 @@ try:
     curses.init_pair(8, curses.COLOR_WHITE, curses.COLOR_BLACK)
     curses.init_pair(9, curses.COLOR_WHITE, curses.COLOR_BLACK)
     curses.init_pair(10, curses.COLOR_WHITE, curses.COLOR_BLACK)
+    FLAT_CHAR = curses.ACS_HLINE
 
     while True:
         # gather and extract data
