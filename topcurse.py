@@ -6,7 +6,7 @@ import time
 from collections import deque
 
 TIME_STEP = 5.0 # seconds
-OLD_PROCESS_LIMIT = 20
+HISTORY_LENGTH = 20
 
 UP_CHAR = '/'
 DOWN_CHAR = '\\'
@@ -24,7 +24,7 @@ class ProcessHistory:
         self.history_times.append(time)
         self.history_cpus.append(cpu)
         self.len += 1
-        if self.len > OLD_PROCESS_LIMIT:
+        if self.len > HISTORY_LENGTH:
             self.history_times.popleft()
             self.history_cpus.popleft()
             self.len -= 1
@@ -95,7 +95,7 @@ try:
             y += 1
 
         sorted_lists.append(sorted_list)
-        if len(sorted_lists) > OLD_PROCESS_LIMIT + 1:
+        if len(sorted_lists) > HISTORY_LENGTH + 1:
             sorted_lists.popleft()
 
         x = 1
@@ -103,7 +103,7 @@ try:
         base_y = 1
         for i in xrange(0, len(sorted_lists)):
             if i == 0:
-                if len(sorted_lists) >= OLD_PROCESS_LIMIT + 1:
+                if len(sorted_lists) >= HISTORY_LENGTH + 1:
                     continue
                 else:
                     for l in xrange(0, len(sorted_lists[most_recent])):
@@ -130,7 +130,7 @@ try:
         # cull processes that haven't updated recently
         time_history.append(current_time)
         procs_to_kill = []
-        if len(time_history) > OLD_PROCESS_LIMIT:
+        if len(time_history) > HISTORY_LENGTH:
             limit_time = time_history.popleft()
             for proc in proc_set:
                 if proc_set[proc].get_most_recent_time() <= limit_time:
