@@ -48,6 +48,15 @@ sorted_lists = deque()
 
 proc_set = {}
 
+pagein = 0
+pagein_dif = 0
+pageout = 0
+pageout_dif = 0
+swapin = 0
+swapin_dif = 0
+swapout = 0
+swapout_dif = 0
+
 # cleanup curses if something goes horribly wrong
 def quit_curses():
     scr.keypad(0)
@@ -76,7 +85,7 @@ try:
     FLAT_CHAR = curses.ACS_HLINE
 
     while True:
-        # gather and extract data
+        # gather and extract top data
         top_output = subprocess.check_output("top -n 10 -l 2 -o cpu -stats pid,cpu,command,mem".split(' '))
         lines = top_output.split('\n')[-11:-1]
         current_time = time.time()
@@ -90,11 +99,35 @@ try:
                 proc_set[name] = ProcessHistory(pid, command)
             proc_set[name].add_sample(current_time, float(cpu), mem)
 
+        scr.clear()
+
+        # gather and display vm_stat data
+        vmstat_output = subprocess.check_output("vm_stat")
+        lines = vmstat_output.split('\n')[-5:-1]
+        for line in lines:
+            parts = compact_whitespace.sub(' ', line[:-1]).split(' ')
+            value = int(parts[1])
+            if parts[0] == 'Pageins:':
+                pagein_dif = value - pagein
+                pagein = value
+            elif parts[0] == 'Pageouts:':
+                pageout_dif = value - pageout
+                pageout = value
+            elif parts[0] == 'Swapins:':
+                swapin_dif = value - swapin
+                swapin = value
+            elif parts[0] == 'Swapouts:':
+                swapout_dif = value - swapout
+                swapout = value
+        y = 12
+        x = 0
+        scr.addstr(y, x, "Pageins/out: %i/%i (%i/%i)" % (pagein, pageout, pagein_dif, pageout_dif))
+        scr.addstr(y+1, x, "Swapins/outs: %i/%i (%i/%i)" % (swapin, swapout, swapin_dif, swapout_dif))
+
         # sort and display processes
         sorted_list = sorted(cur_list, key=cur_list.get, reverse=True)
         y = 1
         x = 25
-        scr.clear()
         scr.addstr(y-1, x, "%5s %-20s %5s %6s" % ("PID", "Process", "CPU", "Memory"))
         for i in xrange(0, len(sorted_list)):
             name = sorted_list[i]
@@ -135,8 +168,8 @@ try:
                         scr.addch(base_y + sorted_lists[i].index(proc), x, char, curses.color_pair(l+1))
             x += 1
 
-        y = base_y + 12
-        x = 0
+        y = base_y + 11
+        x = 25
         # cull processes that haven't updated recently
         time_history.append(current_time)
         procs_to_kill = []
