@@ -54,9 +54,9 @@ try:
     scr.keypad(1)
     curses.start_color()
     curses.init_pair(1, curses.COLOR_RED, curses.COLOR_BLACK)
-    curses.init_pair(2, curses.COLOR_CYAN, curses.COLOR_BLACK)
+    curses.init_pair(2, curses.COLOR_BLUE, curses.COLOR_BLACK)
     curses.init_pair(3, curses.COLOR_MAGENTA, curses.COLOR_BLACK)
-    curses.init_pair(4, curses.COLOR_BLUE, curses.COLOR_BLACK)
+    curses.init_pair(4, curses.COLOR_CYAN, curses.COLOR_BLACK)
     curses.init_pair(5, curses.COLOR_YELLOW, curses.COLOR_BLACK)
     curses.init_pair(6, curses.COLOR_GREEN, curses.COLOR_BLACK)
     curses.init_pair(7, curses.COLOR_WHITE, curses.COLOR_BLACK)
@@ -81,46 +81,48 @@ try:
 
         # sort and display processes
         sorted_list = sorted(cur_list, key=cur_list.get, reverse=True)
-        y = 0
-        x = 0
+        y = 1
+        x = 25
         scr.clear()
-        for name in sorted_list:
-            #print name, proc_set[name].history[current_time]
-            scr.addstr(y, x, "%-16s %5.1f" % (proc_set[name].command, proc_set[name].get_most_recent_cpu()))
+        scr.addstr(y-1, x, "%5s %-20s %5s" % ("PID", "Process", "CPU"))
+        for i in xrange(0, len(sorted_list)):
+            name = sorted_list[i]
+            scr.addstr(y, x, "%5s %-20s %5.1f" % (proc_set[name].pid, proc_set[name].command, proc_set[name].get_most_recent_cpu(), ), curses.color_pair(i+1))
             y += 1
 
         sorted_lists.append(sorted_list)
         if len(sorted_lists) > OLD_PROCESS_LIMIT + 1:
             sorted_lists.popleft()
 
+        x = 1
         most_recent = len(sorted_lists) - 1
-        base_y = 12
+        base_y = 1
         for i in xrange(0, len(sorted_lists)):
-            y = 12
             if i == 0:
                 if len(sorted_lists) >= OLD_PROCESS_LIMIT + 1:
                     continue
                 else:
                     for l in xrange(0, len(sorted_lists[most_recent])):
                         if sorted_lists[most_recent][l] in sorted_lists[i]:
-                            scr.addch(y, x, FLAT_CHAR, curses.color_pair(l+1))
-                            #y += 1
+                            scr.addch(base_y + sorted_lists[i].index(sorted_lists[most_recent][l]), x, FLAT_CHAR, curses.color_pair(l+1))
             else:
-                for l in xrange(0, len(sorted_lists[i])):
-                    proc = sorted_lists[i][l]
+                for l in xrange(0, len(sorted_lists[most_recent])):
+                    proc = sorted_lists[most_recent][l]
                     char = FLAT_CHAR
-                    if proc not in sorted_lists[i-1]:
-                        char = UP_CHAR
-                    else:
-                        diff = l - sorted_lists[i-1].index(proc)
-                        if diff > 0:
+                    if proc in sorted_lists[i]:
+                        if proc not in sorted_lists[i-1]:
                             char = UP_CHAR
-                        elif diff < 0:
-                            char = DOWN_CHAR
-                    scr.addch(y, x, char, curses.color_pair(l+1))
-                    y += 1
+                        else:
+                            diff = sorted_lists[i].index(proc) - sorted_lists[i-1].index(proc)
+                            if diff > 0:
+                                char = DOWN_CHAR
+                            elif diff < 0:
+                                char = UP_CHAR
+                        scr.addch(base_y + sorted_lists[i].index(proc), x, char, curses.color_pair(l+1))
             x += 1
 
+        y = base_y + 12
+        x = 0
         # cull processes that haven't updated recently
         time_history.append(current_time)
         procs_to_kill = []
