@@ -10,6 +10,7 @@ HISTORY_LENGTH = 37
 
 SECOND_LEVEL = 12
 THIRD_LEVEL = 17
+FOURTH_LEVEL = 21
 
 UP_CHAR = '/'
 DOWN_CHAR = '\\'
@@ -71,6 +72,15 @@ transfer_dif = 0
 quantity = 0
 quantity_dif = 0
 disk_used = 0
+
+eth_in = 0
+eth_in_dif = 0
+eth_out = 0
+eth_out_dif = 0
+wifi_in = 0
+wifi_in_dif = 0
+wifi_out = 0
+wifi_out_dif = 0
 
 # get color for USER / SYSTEM / IDLE
 def get_color(usage):
@@ -255,6 +265,31 @@ try:
         lines = df_results.split('\n')
         parts = compact_whitespace.sub(' ', lines[1]).split(' ')
         scr.addstr(THIRD_LEVEL + 3, 41, "Used: %s" % parts[-2])
+
+        # gather and display netstat data
+        eth_results = subprocess.check_output("netstat -bi -I en0".split(' '))
+        lines = eth_results.split('\n')
+        parts = compact_whitespace.sub(' ', lines[1]).split(' ')
+        value = int(parts[-7])
+        eth_in_dif = value - eth_in
+        eth_in = value
+        value = int(parts[-4])
+        eth_out_dif = value - eth_out
+        eth_out = value
+        wifi_results = subprocess.check_output("netstat -bi -I en1".split(' '))
+        lines = wifi_results.split('\n')
+        parts = compact_whitespace.sub(' ', lines[1]).split(' ')
+        value = int(parts[-7])
+        wifi_in_dif = value - wifi_in
+        wifi_in = value
+        value = int(parts[-4])
+        wifi_out_dif = value - wifi_out
+        wifi_out = value
+        y = FOURTH_LEVEL
+        x = 0
+        scr.addstr(y, x, "NETWORK", curses.color_pair(11))
+        scr.addstr(y + 1, x, "Ethernet in/out: %i/%i (+%i/+%i)" % (eth_in, eth_out, eth_in_dif, eth_out_dif))
+        scr.addstr(y + 2, x, "WiFi in/out: %i/%i (+%i/+%i)" % (wifi_in, wifi_out, wifi_in_dif, wifi_out_dif))
 
         # display debug data
         y = SECOND_LEVEL + 2
