@@ -6,17 +6,16 @@ import time
 from collections import deque
 
 TIME_STEP = 5.0 # seconds
-OLD_PROCESS_LIMIT = 20
+OLD_PROCESS_LIMIT = 5
 
 UP_CHAR = '/'
 DOWN_CHAR = '\\'
 FLAT_CHAR = '-'
 
-# TODO: cull old history items at some point to prevent unbounded memory growth...
 class ProcessHistory:
     def __init__(self, pid, command):
-        self.history_times = []
-        self.history_cpus = []
+        self.history_times = deque()
+        self.history_cpus = deque()
         self.pid = pid
         self.command = command
         self.len = -1
@@ -25,6 +24,10 @@ class ProcessHistory:
         self.history_times.append(time)
         self.history_cpus.append(cpu)
         self.len += 1
+        if self.len > OLD_PROCESS_LIMIT:
+            self.history_times.popleft()
+            self.history_cpus.popleft()
+            self.len -= 1
 
     def get_most_recent_time(self):
         return self.history_times[self.len]
