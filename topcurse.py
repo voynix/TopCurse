@@ -1,9 +1,12 @@
-# import curses
+import curses
 import re
 import subprocess
 import time
 
+from Queue import Queue
+
 TIME_STEP = 5.0 # seconds
+OLD_PROCESS_LIMIT = 20
 
 class ProcessHistory:
     def __init__(self, pid, command):
@@ -18,7 +21,9 @@ class ProcessHistory:
         return max(self.history.keys)
 
 start_time = time.time()
-compact_whitespace = re.compile(r'[ \t]+')
+compact_whitespace = re.compile(r'[ \t]+')''
+time_history = Queue(maxsize=20)
+time_history.put(start_time)
 
 proc_set = {}
 
@@ -39,7 +44,17 @@ while True:
         proc_set[name].add_sample(current_time, cpu)
 
     sorted_list = sorted(cur_list, key=cur_list.get, reverse=True)
+    print current_time
     for name in sorted_list:
         print name, proc_set[name].history[current_time]
+
+    # cull processes that haven't updated recently
+    limit_time = time_history.get()
+    time_history.put(current_time)
+    if time_history.full():
+        for proc in proc_set:
+            if proc_set[proc].get_most_recent_sample() <= limit_time:
+                del proc_set[proc]
+
     # wait till next iteration
     time.sleep(TIME_STEP - ((time.time() - start_time) % TIME_STEP))
