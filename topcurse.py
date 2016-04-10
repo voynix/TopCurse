@@ -21,40 +21,60 @@ class ProcessHistory:
         return max(self.history.keys)
 
 start_time = time.time()
-compact_whitespace = re.compile(r'[ \t]+')''
+compact_whitespace = re.compile(r'[ \t]+')
 time_history = Queue(maxsize=20)
 time_history.put(start_time)
 
 proc_set = {}
 
-while True:
-    top_output = subprocess.check_output("top -n 10 -l 2 -o cpu -stats pid,cpu,command".split(' '))
-    lines = top_output.split('\n')[-11:-1]
-    # print len(lines)
+# cleanup curses if something goes horribly wrong
+def quit_curses():
+    scr.keypad(0)
+    curses.curs_set(1)
+    curses.nocbreak()
+    curses.echo()
+    curses.endwin()
 
-    current_time = time.time()
-    cur_list = {}
-    for line in lines:
-        parts = compact_whitespace.sub(' ', line).split(' ')
-        pid, cpu, command = parts[:3]
-        name = "%s|%s" % (pid, command)
-        cur_list[name] = float(cpu)
-        if name not in proc_set:
-            proc_set[name] = ProcessHistory(pid, command)
-        proc_set[name].add_sample(current_time, cpu)
+try:
+    scr = curses.initscr()
+    curses.noecho()
+    curses.nocbreak()
+    scr.keypad(1)
 
-    sorted_list = sorted(cur_list, key=cur_list.get, reverse=True)
-    print current_time
-    for name in sorted_list:
-        print name, proc_set[name].history[current_time]
+    while True:
+            top_output = subprocess.check_output("top -n 10 -l 2 -o cpu -stats pid,cpu,command".split(' '))
+            lines = top_output.split('\n')[-11:-1]
 
-    # cull processes that haven't updated recently
-    limit_time = time_history.get()
-    time_history.put(current_time)
-    if time_history.full():
-        for proc in proc_set:
-            if proc_set[proc].get_most_recent_sample() <= limit_time:
-                del proc_set[proc]
+            current_time = time.time()
+            cur_list = {}
+            for line in lines:
+                parts = compact_whitespace.sub(' ', line).split(' ')
+                pid, cpu, command = parts[:3]
+                name = "%s|%s" % (pid, command)
+                cur_list[name] = float(cpu)
+                if name not in proc_set:
+                    proc_set[name] = ProcessHistory(pid, command)
+                proc_set[name].add_sample(current_time, cpu)
 
-    # wait till next iteration
-    time.sleep(TIME_STEP - ((time.time() - start_time) % TIME_STEP))
+            sorted_list = sorted(cur_list, key=cur_list.get, reverse=True)
+            y = 0
+            x = 0
+            scr.clear()
+            for name in sorted_list:
+                #print name, proc_set[name].history[current_time]
+                scr.addstr(y, x, "%s %s" % (name, proc_set[name].history[current_time]))
+                y += 1
+            scr.refresh()
+
+            # cull processes that haven't updated recently
+            limit_time = time_history.get()
+            time_history.put(current_time)
+            if time_history.full():
+                for proc in proc_set:
+                    if proc_set[proc].get_most_recent_sample() <= limit_time:
+                        del proc_set[proc]
+
+            # wait till next iteration
+            time.sleep(TIME_STEP - ((time.time() - start_time) % TIME_STEP))
+except:
+    quit_curses()
