@@ -9,7 +9,7 @@ TIME_STEP = 3.0 # seconds
 HISTORY_LENGTH = 37
 
 SECOND_LEVEL = 12
-MISC_LEVEL = 17
+THIRD_LEVEL = 17
 
 UP_CHAR = '/'
 DOWN_CHAR = '\\'
@@ -65,6 +65,12 @@ swapout = 0
 swapout_dif = 0
 
 usages = deque()
+
+transfer = 0
+transfer_dif = 0
+quantity = 0
+quantity_dif = 0
+disk_used = 0
 
 # get color for USER / SYSTEM / IDLE
 def get_color(usage):
@@ -139,7 +145,7 @@ try:
             elif parts[0] == 'Swapouts:':
                 swapout_dif = value - swapout
                 swapout = value
-        y = MISC_LEVEL
+        y = THIRD_LEVEL
         x = 0
         scr.addstr(y, x, "MEMORY", curses.color_pair(11))
         scr.addstr(y+1, x, "Pageins/out: %i/%i (+%i/+%i)" % (pagein, pageout, pagein_dif, pageout_dif))
@@ -167,7 +173,7 @@ try:
         x = 1
         most_recent = len(sorted_lists) - 1
         y = 1
-        scr.addstr(y-1, x-1, "CPU (RELATIVE USAGE)", curses.color_pair(11))
+        scr.addstr(y-1, x-1, "CPU (RELATIVE)", curses.color_pair(11))
         for i in xrange(0, len(sorted_lists)):
             if i == 0:
                 if len(sorted_lists) >= HISTORY_LENGTH + 1:
@@ -194,18 +200,31 @@ try:
             x += 1
 
         # gather and display iostat data
-        iostat_results = subprocess.check_output("iostat")
+        iostat_results = subprocess.check_output(["iostat", "-I"])
         lines = iostat_results.split('\n')
         parts = compact_whitespace.sub(' ', lines[2]).split(' ')
+        value = int(parts[2])
+        transfer_dif = value - transfer
+        transfer = value
+        value = float(parts[3])
+        quantity_dif = value - quantity
+        quantity = value
         usi = dict(USER=int(parts[4]), SYS=int(parts[5]), IDLE=int(parts[6]))
         sorted_usi = sorted(usi, key=usi.get, reverse=True)
         usages.append(sorted_usi)
         if len(usages) > HISTORY_LENGTH + 1:
             usages.popleft()
 
+        y = THIRD_LEVEL
+        x = 41
+        scr.addstr(y, x, "DISK", curses.color_pair(11))
+        scr.addstr(y + 1, x, "Transfers: %i (+%i)" % (transfer, transfer_dif))
+        scr.addstr(y + 2, x, "MBytes: %.2f (+%.2f)" % (quantity, quantity_dif))
+
+
         y = SECOND_LEVEL
         x = 1
-        scr.addstr(y, x-1, "CPU SHARE (RELATIVE USAGE)", curses.color_pair(11))
+        scr.addstr(y, x-1, "CPU SHARE (RELATIVE)", curses.color_pair(11))
         for i in xrange(0, len(usages)):
             if i == 0:
                 if len(usages) >= HISTORY_LENGTH + 1:
@@ -231,9 +250,15 @@ try:
         for i in range(0, 3):
             scr.addstr(y + 1 + i, x, "%5s %3i" % (usages[index][i], usi[usages[index][i]]), get_color(usages[index][i]))
 
+        # gather and display df data
+        df_results = subprocess.check_output("df")
+        lines = df_results.split('\n')
+        parts = compact_whitespace.sub(' ', lines[1]).split(' ')
+        scr.addstr(THIRD_LEVEL + 3, 41, "Used: %s" % parts[-2])
+
         # display debug data
-        y = MISC_LEVEL + 2
-        x = 40
+        y = SECOND_LEVEL + 2
+        x = 53
         scr.addstr(y-2, x, "DEBUG", curses.color_pair(11))
         # cull processes that haven't updated recently
         time_history.append(current_time)
@@ -243,14 +268,14 @@ try:
             for proc in proc_set:
                 if proc_set[proc].get_most_recent_time() <= limit_time:
                     procs_to_kill.append(proc)
-                    scr.addstr(y, x, "Culled %s for age" % proc)
+                    scr.addstr(y, x, "Culled %s" % proc_set[proc].command)
                     y += 1
         for proc in procs_to_kill:
             del proc_set[proc]
 
         # wait till next iteration
         delta = TIME_STEP - ((time.time() - start_time) % TIME_STEP)
-        scr.addstr(MISC_LEVEL+1, x, "Sleep Time: %f" % (delta / TIME_STEP))
+        scr.addstr(SECOND_LEVEL+1, x, "Sleep Time: %f" % (delta / TIME_STEP))
 
         # render
         scr.refresh()
