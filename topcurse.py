@@ -15,9 +15,9 @@ UP_CHAR = '/'
 DOWN_CHAR = '\\'
 FLAT_CHAR = '-'
 
-USER = 'user'
-SYSTEM = 'system'
-IDLE = 'idle'
+USER = 'USER'
+SYSTEM = 'SYS'
+IDLE = 'IDLE'
 
 class ProcessHistory:
     def __init__(self, pid, command):
@@ -64,10 +64,16 @@ swapin_dif = 0
 swapout = 0
 swapout_dif = 0
 
-usage_set = {}
-usage_set[USER] = ProcessHistory(0, USER)
-usage_set[SYSTEM] = ProcessHistory(1, SYSTEM)
-usage_set[IDLE] = ProcessHistory(2, IDLE)
+usages = deque()
+
+# get color for USER / SYSTEM / IDLE
+def get_color(usage):
+    if usage == USER:
+        return curses.color_pair(1)
+    elif usage == SYSTEM:
+        return curses.color_pair(2)
+    elif usage == IDLE:
+        return curses.color_pair(3)
 
 # cleanup curses if something goes horribly wrong
 def quit_curses():
@@ -143,7 +149,6 @@ try:
         sorted_list = sorted(cur_list, key=cur_list.get, reverse=True)
         y = 1
         x = 40
-        #scr.addstr(y-1, x+2, "%3s %-20s %5s %6s" % ("PID", "PROCESS", "CPU", "MEMORY"), curses.color_pair(11))
         scr.addstr(y-1, x+2, "PID", curses.color_pair(11))
         scr.addstr(y-1, x+6, "PROCESS", curses.color_pair(11))
         scr.addstr(y-1, x+29, "CPU", curses.color_pair(11))
@@ -188,6 +193,45 @@ try:
                         scr.addch(y + sorted_lists[i].index(proc), x, char, curses.color_pair(l+1))
             x += 1
 
+        # gather and display iostat data
+        iostat_results = subprocess.check_output("iostat")
+        lines = iostat_results.split('\n')
+        parts = compact_whitespace.sub(' ', lines[2]).split(' ')
+        usi = dict(USER=int(parts[4]), SYS=int(parts[5]), IDLE=int(parts[6]))
+        sorted_usi = sorted(usi, key=usi.get, reverse=True)
+        usages.append(sorted_usi)
+        if len(usages) > HISTORY_LENGTH + 1:
+            usages.popleft()
+
+        y = SECOND_LEVEL
+        x = 1
+        scr.addstr(y, x-1, "CPU SHARE (RELATIVE USAGE)", curses.color_pair(11))
+        for i in xrange(0, len(usages)):
+            if i == 0:
+                if len(usages) >= HISTORY_LENGTH + 1:
+                    continue
+                else:
+                    for l in range(0, 3):
+                        scr.addch(y + 1 + l, x, FLAT_CHAR, get_color(usages[i][l]))
+            else:
+                for l in range(0, 3):
+                    char = FLAT_CHAR
+                    diff = l - usages[i-1].index(usages[i][l])
+                    if diff > 0:
+                        char = DOWN_CHAR
+                    elif diff < 0:
+                        char = UP_CHAR
+                    scr.addch(y + 1 + l, x, char, get_color(usages[i][l]))
+            x += 1
+
+        x = 40
+        scr.addstr(y, x, "USAGE", curses.color_pair(11))
+        scr.addstr(y, x + 6, "CPU", curses.color_pair(11))
+        index = len(usages) - 1
+        for i in range(0, 3):
+            scr.addstr(y + 1 + i, x, "%5s %3i" % (usages[index][i], usi[usages[index][i]]), get_color(usages[index][i]))
+
+        # display debug data
         y = MISC_LEVEL + 2
         x = 40
         scr.addstr(y-2, x, "DEBUG", curses.color_pair(11))
@@ -198,7 +242,6 @@ try:
             limit_time = time_history.popleft()
             for proc in proc_set:
                 if proc_set[proc].get_most_recent_time() <= limit_time:
-                    #del proc_set[proc]
                     procs_to_kill.append(proc)
                     scr.addstr(y, x, "Culled %s for age" % proc)
                     y += 1
