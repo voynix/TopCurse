@@ -91,6 +91,9 @@ def get_color(usage):
     elif usage == IDLE:
         return curses.color_pair(3)
 
+def get_header_color():
+    return curses.color_pair(11)
+
 # cleanup curses if something goes horribly wrong
 def quit_curses():
     scr.keypad(0)
@@ -157,7 +160,7 @@ try:
                 swapout = value
         y = THIRD_LEVEL
         x = 0
-        scr.addstr(y, x, "MEMORY", curses.color_pair(11))
+        scr.addstr(y, x, "MEMORY", get_header_color())
         scr.addstr(y+1, x, "Pageins/out: %i/%i (+%i/+%i)" % (pagein, pageout, pagein_dif, pageout_dif))
         scr.addstr(y+2, x, "Swapins/outs: %i/%i (+%i/+%i)" % (swapin, swapout, swapin_dif, swapout_dif))
 
@@ -165,10 +168,10 @@ try:
         sorted_list = sorted(cur_list, key=cur_list.get, reverse=True)
         y = 1
         x = 40
-        scr.addstr(y-1, x+2, "PID", curses.color_pair(11))
-        scr.addstr(y-1, x+6, "PROCESS", curses.color_pair(11))
-        scr.addstr(y-1, x+29, "CPU", curses.color_pair(11))
-        scr.addstr(y-1, x+33, "MEMORY", curses.color_pair(11))
+        scr.addstr(y-1, x+2, "PID", get_header_color())
+        scr.addstr(y-1, x+6, "PROCESS", get_header_color())
+        scr.addstr(y-1, x+29, "CPU", get_header_color())
+        scr.addstr(y-1, x+33, "MEMORY", get_header_color())
         for i in xrange(0, len(sorted_list)):
             name = sorted_list[i]
             scr.addstr(y, x, "%5s %-20s %5.1f %6s" % (proc_set[name].pid, proc_set[name].command,
@@ -183,7 +186,7 @@ try:
         x = 1
         most_recent = len(sorted_lists) - 1
         y = 1
-        scr.addstr(y-1, x-1, "CPU (RELATIVE)", curses.color_pair(11))
+        scr.addstr(y-1, x-1, "CPU (RELATIVE)", get_header_color())
         for i in xrange(0, len(sorted_lists)):
             if i == 0:
                 if len(sorted_lists) >= HISTORY_LENGTH + 1:
@@ -227,14 +230,14 @@ try:
 
         y = THIRD_LEVEL
         x = 41
-        scr.addstr(y, x, "DISK", curses.color_pair(11))
+        scr.addstr(y, x, "DISK", get_header_color())
         scr.addstr(y + 1, x, "Transfers: %i (+%i)" % (transfer, transfer_dif))
         scr.addstr(y + 2, x, "MBytes: %.2f (+%.2f)" % (quantity, quantity_dif))
 
 
         y = SECOND_LEVEL
         x = 1
-        scr.addstr(y, x-1, "CPU SHARE (RELATIVE)", curses.color_pair(11))
+        scr.addstr(y, x-1, "CPU SHARE (RELATIVE)", get_header_color())
         for i in xrange(0, len(usages)):
             if i == 0:
                 if len(usages) >= HISTORY_LENGTH + 1:
@@ -254,8 +257,8 @@ try:
             x += 1
 
         x = 40
-        scr.addstr(y, x, "USAGE", curses.color_pair(11))
-        scr.addstr(y, x + 6, "CPU", curses.color_pair(11))
+        scr.addstr(y, x, "USAGE", get_header_color())
+        scr.addstr(y, x + 6, "CPU", get_header_color())
         index = len(usages) - 1
         for i in range(0, 3):
             scr.addstr(y + 1 + i, x, "%5s %3i" % (usages[index][i], usi[usages[index][i]]), get_color(usages[index][i]))
@@ -287,14 +290,14 @@ try:
         wifi_out = value
         y = FOURTH_LEVEL
         x = 0
-        scr.addstr(y, x, "NETWORK", curses.color_pair(11))
+        scr.addstr(y, x, "NETWORK", get_header_color())
         scr.addstr(y + 1, x, "Ethernet in/out: %i/%i (+%i/+%i)" % (eth_in, eth_out, eth_in_dif, eth_out_dif))
         scr.addstr(y + 2, x, "WiFi in/out: %i/%i (+%i/+%i)" % (wifi_in, wifi_out, wifi_in_dif, wifi_out_dif))
 
         # display debug data
         y = SECOND_LEVEL + 2
         x = 53
-        scr.addstr(y-2, x, "DEBUG", curses.color_pair(11))
+        scr.addstr(y-2, x, "DEBUG", get_header_color())
         # cull processes that haven't updated recently
         time_history.append(current_time)
         procs_to_kill = []
