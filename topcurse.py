@@ -161,8 +161,8 @@ try:
         y = THIRD_LEVEL
         x = 0
         scr.addstr(y, x, "MEMORY", get_header_color())
-        scr.addstr(y+1, x, "Pageins/out: %i/%i (+%i/+%i)" % (pagein, pageout, pagein_dif, pageout_dif))
-        scr.addstr(y+2, x, "Swapins/outs: %i/%i (+%i/+%i)" % (swapin, swapout, swapin_dif, swapout_dif))
+        scr.addstr(y+1, x+1, "Pageins/outs: %i/%i (+%i/+%i)" % (pagein, pageout, pagein_dif, pageout_dif))
+        scr.addstr(y+2, x+1, "Swapins/outs: %i/%i (+%i/+%i)" % (swapin, swapout, swapin_dif, swapout_dif))
 
         # sort and display processes
         sorted_list = sorted(cur_list, key=cur_list.get, reverse=True)
@@ -291,8 +291,8 @@ try:
         y = FOURTH_LEVEL
         x = 0
         scr.addstr(y, x, "NETWORK", get_header_color())
-        scr.addstr(y + 1, x, "Ethernet in/out: %i/%i (+%i/+%i)" % (eth_in, eth_out, eth_in_dif, eth_out_dif))
-        scr.addstr(y + 2, x, "WiFi in/out: %i/%i (+%i/+%i)" % (wifi_in, wifi_out, wifi_in_dif, wifi_out_dif))
+        scr.addstr(y + 1, x+1, "Ethernet in/out: %i/%i (+%i/+%i)" % (eth_in, eth_out, eth_in_dif, eth_out_dif))
+        scr.addstr(y + 2, x+1, "WiFi in/out: %i/%i (+%i/+%i)" % (wifi_in, wifi_out, wifi_in_dif, wifi_out_dif))
 
         # display debug data
         y = SECOND_LEVEL + 2
